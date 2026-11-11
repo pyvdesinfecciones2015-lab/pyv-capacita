@@ -50,7 +50,7 @@
     T.forEach(function (t) { cuenta[estadoDe(t)]++; });
     cuenta.vencido += cuenta.cert_vencido;
     var tabs = [['trabajadores', 'Avance'], ['sesiones', 'Sesiones']];
-    if (A.rol === 'admin') tabs.push(['capacitaciones', 'Crear capacitación'], ['talleres', 'Respuestas'], ['expediente', 'Fiscalización'], ['config', 'Configuración']);
+    if (A.rol === 'admin') tabs.push(['revision', 'Modo revisión'], ['capacitaciones', 'Crear capacitación'], ['talleres', 'Respuestas'], ['expediente', 'Fiscalización'], ['config', 'Configuración']);
     var cursoSel = '<label class="campo" style="margin-bottom:12px">Capacitación<select id="fcur">' + PLAN.cursos.map(function (c) { return '<option value="' + c.id + '"' + (A.filtro.curso === c.id ? ' selected' : '') + '>' + h(c.titulo) + '</option>'; }).join('') + '</select></label>';
     app.innerHTML = cursoSel + '<div class="kpis">' +
       '<div class="kpi"><b>' + cuenta.total + '</b><span>Deben hacerla</span></div>' +
@@ -62,9 +62,24 @@
       '<div id="vista"></div>' + (D.raiz ? '<p class="pie"><a href="' + h(D.raiz) + '" target="_blank" rel="noopener">Abrir la carpeta de respaldo en Google Drive</a></p>' : '');
     $$('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { A.tab = b.dataset.tab; pintar(); }); });
     $('#fcur').addEventListener('change', function () { A.filtro.curso = this.value; A.filtro.estado = ''; pintar(); });
-    ({ trabajadores: vTrabajadores, sesiones: vSesiones, expediente: vExpediente, config: vConfig, capacitaciones: vCapacitaciones, talleres: vRespuestas })[A.tab]();
+    ({ trabajadores: vTrabajadores, sesiones: vSesiones, expediente: vExpediente, config: vConfig, capacitaciones: vCapacitaciones, talleres: vRespuestas, revision: vRevision })[A.tab]();
   }
 
+
+  /* ---------- modo revisión: ver la plataforma como cada cargo ---------- */
+  function vRevision() {
+    var C = PLAN.cargos;
+    $('#vista').innerHTML = '<section class="tarjeta"><h2>Modo revisión</h2>' +
+      '<p class="suave">Elige un cargo para ver la plataforma tal como la ve ese trabajador: sus cursos, cada etapa, los riesgos de su Matriz IPER, los juegos, talleres y evaluaciones. En este modo todas las etapas están abiertas, no hay tiempos mínimos y <b>no se registra nada</b>: ni avance, ni respuestas, ni certificados.</p>' +
+      '<p class="suave">Se abre en una pestaña nueva. Para tus propias capacitaciones como prevencionista sigue usando tu sesión de trabajadora.</p>' +
+      '<div class="rev-grid">' + C.map(function (c) { var n = PLAN.cursosDe(c.id).length; return '<button type="button" class="btn btn-sec rev-cargo" data-rev="' + h(c.id) + '"><b>' + h(c.nombre) + '</b><span>' + n + ' capacitaciones · ' + h(c.area) + '</span></button>'; }).join('') + '</div></section>';
+    $$('[data-rev]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        try { localStorage.setItem('pyv_revision', JSON.stringify({ t: Date.now(), extras: (A.datos.extras || []).filter(function (x) { return x.estado === 'publicado'; }) })); } catch (e) { }
+        window.open('index.html?revision=' + encodeURIComponent(b.dataset.rev), '_blank', 'noopener');
+      });
+    });
+  }
   /* ---------- trabajadores ---------- */
   /* ---------- versión vigente del documento y recapacitación masiva ---------- */
   function afectados() { return A.datos.trabajadores.filter(function (t) { var c = cdc(t); return c && (c.certificado || c.iniciado || c.hechos > 0); }); }

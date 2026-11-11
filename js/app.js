@@ -41,7 +41,7 @@
     var det = sv.detalle || {};
     return {
       estado: (sv.estado === 'completado' || lc.estado === 'completado') ? 'completado' : ((sv.estado || lc.estado) ? 'en_curso' : ''),
-      segundos: (sv.segundos || 0) + SRV.segundosPendientes(item) + (Tiempo.item === item ? Tiempo.acc : 0),
+      segundos: S.revision ? 1e7 : (sv.segundos || 0) + SRV.segundosPendientes(item) + (Tiempo.item === item ? Tiempo.acc : 0),
       scorm: lc.scorm || det.scorm || '', suspend: lc.suspend != null ? lc.suspend : (sv.suspend || ''), location: lc.location != null ? lc.location : (det.location || ''),
       intentos: Math.max(sv.intentos || 0, lc.intentos || 0), puntaje: sv.puntaje
     };
@@ -54,6 +54,7 @@
     return cur.etapas.filter(function (e) { return e.tipo !== 'sesiones' || req; });
   }
   function disponible(e) {
+    if (S.revision) return true;
     var L = etapasVisibles(e.curso);
     if (L[0] && L[0].id === e.id) return true;
     if (e.tipo === 'sesiones') return hecho('ds44.manual');
@@ -94,7 +95,7 @@
   window.addEventListener('offline', red);
   function red() {
     var el = $('#red'), n = SRV.pendientes();
-    if (!S.token) { el.classList.add('oculto'); return; }
+    if (!S.token || S.revision) { el.classList.add('oculto'); return; }
     el.classList.remove('oculto');
     if (!navigator.onLine && !SRV.demo) { el.textContent = 'Sin señal'; el.classList.add('off'); }
     else if (n > 0) { el.textContent = 'Guardando'; el.classList.remove('off'); }
@@ -206,7 +207,7 @@
     var seg = L.reduce(function (s, e) { return s + prog(e.id).segundos; }, 0);
     var actual = etapaActual(cur.id);
     var rq = (P.cursos && P.cursos[cur.id] && P.cursos[cur.id].requisitos) || {}, durMin = rq.duracionMin || cur.duracionMin || 0;
-    var chips = '<span class="chip">Tiempo registrado <b>' + hTxt(seg) + '</b>' + (durMin ? ' de ' + h(PLAN.duracionTxt(durMin).replace(' cronológicas', '').replace(' cronológica', '')) : '') + '</span>';
+    var chips = S.revision ? '<span class="chip">Duración del programa <b>' + h(PLAN.duracionTxt(durMin)) + '</b></span><span class="chip alerta">Modo revisión: todas las etapas abiertas</span>' : '<span class="chip">Tiempo registrado <b>' + hTxt(seg) + '</b>' + (durMin ? ' de ' + h(PLAN.duracionTxt(durMin).replace(' cronológicas', '').replace(' cronológica', '')) : '') + '</span>';
     if (esDs && P.fechaLimite && !cert) {
       var dias = Math.ceil((new Date(P.fechaLimite + 'T23:59:59') - new Date()) / 86400000);
       chips += '<span class="chip' + (dias < 0 ? ' peligro' : dias <= 21 ? ' alerta' : '') + '">' + (dias < 0 ? 'Plazo vencido' : 'Plazo hasta <b>' + fechaTxt(P.fechaLimite) + '</b>') + '</span>';
@@ -233,6 +234,7 @@
       else if (e.tipo === 'manual') meta = ok ? 'Descargado' : 'Descárgalo antes de empezar';
       else if (e.tipo === 'pyv') meta = ok ? 'Revisado' : 'Riesgos, procedimientos y emergencias de tu cargo';
       else if (e.tipo === 'encuesta') meta = ok ? 'Respondida' : '2 minutos';
+      if (S.revision) meta = ({ scorm: 'Cápsula oficial', quiz: 'Evaluación', juego: 'Actividad práctica', taller: 'Taller práctico', leccion: 'Cápsula', firma: 'Firma del trabajador', manual: 'Manual del participante', pyv: 'Riesgos de su cargo', encuesta: 'Encuesta', sesiones: 'Sesiones presenciales' })[e.tipo] + (e.minMin ? ' · ' + e.minMin + ' min mínimo' : '') + (ok ? ' · revisada' : '');
       var cls = 'etapa' + (ok ? ' hecha' : '') + (esActual ? ' actual' : '') + (!disp ? ' bloq' : '');
       html += '<button type="button" class="' + cls + '" data-etapa="' + e.id + '"' + (!disp ? ' aria-disabled="true"' : '') + '>' +
         '<span class="boya">' + (ok ? '<svg width="14" height="14" viewBox="0 0 24 24" style="color:#fff">' + ICONOS.hecho + '</svg>' : '') + '</span>' +
@@ -269,7 +271,7 @@
     }
     var oblig = cursos.filter(function (c) { return c.obligatorio; }), otros = cursos.filter(function (c) { return !c.obligatorio && !c.pts && !c.extra; }), pts = cursos.filter(function (c) { return c.pts; }), extra = cursos.filter(function (c) { return c.extra; });
     var aprob = cursos.filter(function (c) { var x = certDe(c.id); return x && !x.vencido; }).length;
-    app.innerHTML = '<div class="encabezado"><div class="quien"><div class="suave peq">Hola,</div><h1>' + h(P.nombre.split(' ')[0]) + '</h1><div class="suave">' + h(cargo ? cargo.nombre : '') + ' · ' + h(P.run) + '</div>' +
+    app.innerHTML = '<div class="encabezado"><div class="quien"><div class="suave peq">' + (S.revision ? 'Así lo ve el cargo' : 'Hola,') + '</div><h1>' + h(S.revision ? (cargo ? cargo.nombre : '') : P.nombre.split(' ')[0]) + '</h1><div class="suave">' + h(cargo ? cargo.nombre : '') + ' · ' + h(P.run) + '</div>' +
       '<div class="chips"><span class="chip">Aprobadas <b>' + aprob + ' de ' + cursos.length + '</b></span></div></div></div>' +
       '<h2 class="seccion">Obligatorias</h2>' + oblig.map(tarjeta).join('') +
       (otros.length ? '<h2 class="seccion">Capacitaciones de PyV</h2>' + otros.map(tarjeta).join('') : '') +
@@ -431,19 +433,27 @@
   /* ---------- cápsulas de PyV (lecciones) ---------- */
   function vistaLeccion(e) {
     var def = CONTENIDO.lecciones[e.id]; if (typeof def === 'function') def = def(S.perfil.cargo);
+    if (def && def.cargar) {
+      app.innerHTML = encabezadoEtapa(e) + '<section class="tarjeta"><p>Cargando el contenido…</p></section>'; enlazarVolver();
+      var sc = document.createElement('script'); sc.src = def.cargar + '?v=' + (PLAN.version || '');
+      sc.onload = function () { if (S.etapa === e.id) vistaLeccion(e); };
+      sc.onerror = function () { app.innerHTML = encabezadoEtapa(e) + '<section class="tarjeta"><div class="aviso error">No se pudo cargar el contenido. Revisa tu señal e inténtalo de nuevo.</div><button class="btn btn-pri btn-bloque" type="button" data-volver>Volver al curso</button></section>'; enlazarVolver(); };
+      document.head.appendChild(sc); return;
+    }
     var D = (def && def.diapositivas) || [], k = 0, visto = {}, ok = hecho(e.id), voz = window.speechSynthesis;
     /* retoma en la última diapositiva vista (por trabajador y cápsula) */
     var claveMarca = 'pyv_marca_' + (S.perfil && S.perfil.run || '') + '_' + e.id, marca = SRV.ls(claveMarca) || {};
     if (!ok && marca.k > 0 && marca.k < D.length) { k = marca.k; (marca.v || []).forEach(function (j) { if (j < D.length) visto[j] = 1; }); }
     function guardarMarca() { if (!ok) SRV.ls(claveMarca, { k: k, v: Object.keys(visto).map(Number) }); }
     Tiempo.iniciar(e.id);
-    function texto(d) { return [d.t, d.x || ''].concat(d.l || [], d.tip ? [d.tip] : []).join('. '); }
+    function texto(d) { return [d.t, d.x || ''].concat(d.l || [], (d.riesgos || []).map(function (r) { return r.t + '. ' + r.f.map(function (x) { return x[0] + ': ' + x[1]; }).join('. '); }), d.tip ? [d.tip] : []).join('. '); }
     function pintar() {
       var d = D[k] || { t: 'Sin contenido' }; visto[k] = 1; guardarMarca();
       var falta = Math.max(0, e.minMin * 60 - prog(e.id).segundos), todas = Object.keys(visto).length >= D.length;
       app.innerHTML = encabezadoEtapa(e) + '<section class="tarjeta diapo"><div class="contador">' + (k + 1) + ' de ' + D.length + (marca.k > 0 && !ok && k === marca.k ? ' · retomas donde quedaste' : '') + '</div><h2>' + h(d.t) + '</h2>' +
         (d.x ? String(d.x).split(/\n\n+/).map(function (p) { return '<p>' + h(p).replace(/\n/g, '<br>') + '</p>'; }).join('') : '') +
         (d.l && d.l.length ? '<ul class="diapo-l">' + d.l.map(function (x) { return '<li>' + h(x) + '</li>'; }).join('') + '</ul>' : '') +
+        (d.riesgos ? d.riesgos.map(function (r) { var nv = String(r.nivel || '').toLowerCase(); return '<div class="mz-r"><h3>' + h(r.t) + (r.nivel ? ' <span class="mz-n ' + (/intoler|importante|alto/.test(nv) ? 'n3' : /moderado|medio|protocolo/.test(nv) ? 'n2' : 'n1') + '">' + h(r.nivel) + '</span>' : '') + '</h3><dl>' + r.f.map(function (x) { return '<dt>' + h(x[0]) + '</dt><dd>' + h(x[1]) + '</dd>'; }).join('') + '</dl></div>'; }).join('') : '') +
         (d.tip ? '<div class="aviso info">' + h(d.tip) + '</div>' : '') +
         '<div class="puntos">' + D.map(function (_, j) { return '<i class="' + (j === k ? 'act' : visto[j] ? 'vis' : '') + '"></i>'; }).join('') + '</div>' +
         '<div class="fila-btn"><button class="btn btn-sec" type="button" id="ant"' + (k === 0 ? ' disabled' : '') + '>Anterior</button>' +
@@ -659,6 +669,7 @@
   /* ---------- certificado ---------- */
   function vistaCertificado() {
     var cur = PLAN.curso(S.curso);
+    if (S.revision) { app.innerHTML = '<button class="volver" type="button" data-volver>' + ic('atras', 18) + 'Volver al curso</button><h1>Certificado</h1><section class="tarjeta"><div class="aviso info">En modo revisión no se emiten certificados. El trabajador lo emite al completar todas las etapas y el tiempo mínimo de ' + h(PLAN.duracionTxt(cur.duracionMin || 0)) + '.</div></section>'; enlazarVolver(); return; }
     app.innerHTML = '<button class="volver" type="button" data-volver>' + ic('atras', 18) + 'Volver al curso</button><h1>Mi certificado</h1><p class="suave">' + h(cur.titulo) + '</p><section class="tarjeta" id="cert"><div class="cargando">Preparando tu certificado…</div></section>';
     enlazarVolver();
     if (!navigator.onLine && !SRV.demo) { $('#cert').innerHTML = '<div class="aviso error">Necesitas señal para emitir o descargar el certificado.</div>'; return; }
@@ -684,6 +695,24 @@
 
   /* ---------- arranque ---------- */
   if (SRV.demo) $('#demo-banda').classList.remove('oculto');
+  var revCargo = (location.search.match(/[?&]revision=([^&]+)/) || [])[1], revOk = SRV.ls('pyv_revision');
+  if (revCargo) revCargo = decodeURIComponent(revCargo);
+  if (revCargo && PLAN.cargo(revCargo) && revOk && Date.now() - revOk.t < 12 * 3600000) {
+    S.revision = true; S.token = 'revision';
+    ['encolar', 'enviar', 'llamar'].forEach(function (k) { SRV[k] = function () { return Promise.resolve({ ok: false, error: 'Modo revisión: no se registra nada.' }); }; });
+    SRV.ls('pyv_local_REVISION', null);
+    Object.keys(localStorage).forEach(function (k) { if (k.indexOf('pyv_marca_REVISION') === 0) localStorage.removeItem(k); });
+    S.perfil = { nombre: 'Modo revisión', run: 'REVISION', cargo: revCargo, progreso: {}, cursos: {}, sesiones: [], facilitador: CONTENIDO.empresa.apr,
+      extras: (revOk.extras || []).filter(function (x) { return x.cargos === '*' || (x.cargos || []).indexOf(revCargo) >= 0; }) };
+    aplicarExtras();
+    var banda = document.createElement('div'); banda.className = 'rev-banda';
+    banda.innerHTML = '<b>Modo revisión</b> · viendo como <select id="rev-cargo" aria-label="Cargo">' + PLAN.cargos.map(function (c) { return '<option value="' + h(c.id) + '"' + (c.id === revCargo ? ' selected' : '') + '>' + h(c.nombre) + '</option>'; }).join('') + '</select> · no se registra nada <button type="button" id="rev-salir">Cerrar</button>';
+    document.body.insertBefore(banda, document.body.firstChild);
+    $('#rev-cargo').addEventListener('change', function () { location.search = '?revision=' + encodeURIComponent(this.value); });
+    $('#rev-salir').addEventListener('click', function () { window.close(); setTimeout(function () { location.href = 'admin.html'; }, 200); });
+    ir('cursos');
+    return;
+  }
   var ses = SRV.ls('pyv_sesion');
   if (ses && ses.token) {
     S.token = ses.token; S.perfil = ses.perfil; aplicarExtras(); $('#btn-salir').classList.remove('oculto'); red(); ir('cursos');

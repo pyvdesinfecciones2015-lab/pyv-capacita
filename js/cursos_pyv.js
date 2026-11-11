@@ -801,3 +801,39 @@ CONTENIDO.talleres['acc.t1'] = { intro: 'Investiga un caso simulado como lo har�
   { tipo: 'abierta', p: 'Propón tres medidas, una de ellas de ingeniería, con responsable.', min: 60, alApr: true, modelo: 'Línea de vida provisoria al retirar barandas (ingeniería, Supervisor); AST obligatorio aunque haya atraso (administrativo, Supervisor); verificación de chalecos abrochados antes de cada maniobra (Patrón).' },
   { tipo: 'abierta', p: '¿Qué hubiera pasado sin chaleco? ¿Qué dice esto del valor del EPP?', min: 30, modelo: 'Sin chaleco la caída pudo ser fatal por el frío y el oleaje: el EPP salvó la vida, pero solo es la última barrera; las causas de fondo deben corregirse igual.' }
 ] };
+
+/* =====================================================================
+   MATRIZ IPER COMPLETA DEL CARGO Y TALLER DE PARTICIPACIÓN
+   ===================================================================== */
+CONTENIDO.lecciones['iper.lm'] = function (cargo) {
+  var M = window.PYV_MATRIZ;
+  if (!M) return { cargar: 'js/pyv_matriz.js', diapositivas: [{ t: 'Cargando tu matriz…', x: 'Un momento, estamos trayendo la Matriz IPER de tu cargo.' }] };
+  var idx = M.cargos[cargo] || [], porTarea = {}, orden = [];
+  idx.forEach(function (i) {
+    var f = M.filas[i], k = f[0] + '||' + f[1];
+    if (!porTarea[k]) { porTarea[k] = []; orden.push(k); }
+    porTarea[k].push(f);
+  });
+  var d = [{ t: 'Esta es tu Matriz IPER', x: 'La Matriz IPER 2026 de PyV tiene ' + idx.length + ' filas que corresponden a tu cargo de ' + _nombreCargo(cargo) + ', en ' + orden.length + ' tareas. A continuación verás cada tarea con todos sus riesgos, tal como están en la matriz.\n\nEn cada riesgo lee: el peligro, lo que te puede pasar, cómo se evaluó, los controles que deben existir, tu EPP, el procedimiento y el riesgo que queda después de los controles.',
+    tip: 'Mientras la recorres, piensa: ¿falta alguna tarea que haces?, ¿falta algún peligro?, ¿algún control no se cumple en la realidad? Al final hay un taller para que lo informes.' }];
+  orden.forEach(function (k, n) {
+    var F = porTarea[k];
+    d.push({ t: (n + 1) + '. ' + F[0][1], x: 'Proceso: ' + F[0][0] + ' · ' + F.length + (F.length === 1 ? ' riesgo' : ' riesgos'),
+      riesgos: F.map(function (f) {
+        var nv = (f[11] || '').trim(); nv = nv.charAt(0).toUpperCase() + nv.slice(1).toLowerCase();
+        return { t: f[4] + ' (' + f[2].toLowerCase() + ')', nivel: nv, f: [['Peligro', f[3]]].concat(f[5] ? [['Te puede pasar', f[5]]] : [], [['Evaluación inicial', f[6]]],
+          f[7].map(function (c) { var i = c.indexOf(': '); return ['Control · ' + c.slice(0, i).toLowerCase(), c.slice(i + 2)]; }),
+          f[8] ? [['EPP', f[8]]] : [], f[9] ? [['Procedimiento', f[9]]] : [], f[10] ? [['Riesgo residual', f[10]]] : []) };
+      }) });
+  });
+  d.push({ t: 'Tu matriz es un documento vivo', l: ['Se actualiza cuando cambian las tareas, los equipos o los productos, después de un accidente y cuando cambia la normativa.', 'Tú conoces tu trabajo mejor que nadie: si algo falta o no se cumple, infórmalo a tu Supervisor, al Delegado de SST o a Prevención de Riesgos.', 'En el siguiente taller puedes dejar tus observaciones; llegan directamente a Prevención de Riesgos.', 'Puedes pedir la matriz completa de la empresa cuando quieras: es tu derecho conocerla.'] });
+  return { documento: 'docs/Matriz_IPER_PYV_2026_v04.xlsx', diapositivas: d };
+};
+CONTENIDO.talleres['iper.t3'] = function (cargo) {
+  return { intro: 'Ya conoces tu Matriz IPER completa. Ahora ayúdanos a mejorarla: tus respuestas llegan a Prevención de Riesgos y se revisan para la próxima actualización. No hay respuestas buenas o malas; si todo está bien, también sirve que lo digas.', partes: [
+    { tipo: 'abierta', p: '¿Hay alguna tarea que haces en tu trabajo y que no aparece en tu matriz? Descríbela brevemente.', min: 10, alApr: true, modelo: 'Gracias. Prevención revisará si esa tarea debe agregarse a la matriz con sus riesgos y controles.' },
+    { tipo: 'abierta', p: '¿Hay algún peligro o riesgo de tus tareas que no esté identificado o que creas que está mal evaluado (más o menos grave de lo que es)? ¿Cuál y por qué?', min: 20, alApr: true, modelo: 'Gracias. Un riesgo mal evaluado puede dejar controles insuficientes; tu observación se revisará con la matriz.' },
+    { tipo: 'abierta', p: '¿Algún control o EPP de tu matriz no existe o no se cumple en la práctica? ¿Dónde y qué pasa?', min: 20, alApr: true, modelo: 'Gracias. Si un control no se cumple, el riesgo real es mayor al de la matriz: se revisará con tu jefatura.' },
+    { tipo: 'abierta', p: '¿Qué medida propones para trabajar más seguro en tu cargo?', min: 20, alApr: true, modelo: 'Gracias por tu propuesta. Las mejores ideas vienen de quienes hacen el trabajo.' }
+  ] };
+};

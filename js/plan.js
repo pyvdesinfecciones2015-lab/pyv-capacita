@@ -1,7 +1,7 @@
 /* PyV Capacita — catálogo de cursos (compartido entre la app y el servidor).
    Si cambias algo aquí, pega el mismo contenido en Plan.gs del Apps Script. */
 var PLAN = {
-  version: '2026.11b',
+  version: '2026.11c',
   notaAprobacion: 0.7,
 
   /* area: faena (embarcación y módulos), oficina (Las Rosas 121) o mixto (oficina y visitas a faena) */
@@ -93,17 +93,19 @@ var PLAN = {
         { id: 'f1', tipo: 'firma', titulo: 'Firma de recepción de la IRL' }
       ] },
 
-    { id: 'iper', titulo: 'Cómo leer la Matriz IPER de PyV', sub: 'Peligro, riesgo, P × S y jerarquía de controles',
-      horas: 1.5, duracionMin: 90, doc: 'certificado', vigenciaMeses: 12, plazoMeses: 0, cargos: '*',
-      contenidos: 'Estructura de la Matriz IPER · Peligro y riesgo · Evaluación P × S y niveles · Protocolos MINSAL e ISP · Jerarquía de controles · Riesgo residual · La matriz de los procesos y tareas del cargo',
+    { id: 'iper', titulo: 'Matriz IPER de PyV: conócela y participa', sub: 'Tu matriz completa, cómo se lee y cómo proponer cambios',
+      horas: 2, duracionMin: 120, doc: 'certificado', vigenciaMeses: 12, plazoMeses: 0, cargos: '*',
+      contenidos: 'Matriz IPER completa del cargo, tarea por tarea · Participación en su actualización · Estructura de la Matriz IPER · Peligro y riesgo · Evaluación P × S y niveles · Protocolos MINSAL e ISP · Jerarquía de controles · Riesgo residual · La matriz de los procesos y tareas del cargo',
       etapas: [
         { id: 'l1', tipo: 'leccion', titulo: 'Cápsula 1: cómo se lee la matriz', minMin: 10 },
         { id: 'j2', tipo: 'juego', titulo: '¿Peligro o riesgo?' },
         { id: 'l2', tipo: 'leccion', titulo: 'Cápsula 2: evaluar, controlar y el riesgo residual', minMin: 10 },
         { id: 'j1', tipo: 'juego', titulo: 'Clasifica y ordena los controles' },
-        { id: 'lp', tipo: 'leccion', titulo: 'Cápsula 3: la matriz de tus procesos y tareas', minMin: 20 },
+        { id: 'lp', tipo: 'leccion', titulo: 'Cápsula 3: tus procesos y tareas en la matriz', minMin: 10 },
+        { id: 'lm', tipo: 'leccion', titulo: 'Cápsula 4: tu Matriz IPER completa, tarea por tarea', minMin: 25 },
         { id: 't1', tipo: 'taller', titulo: 'Taller: evalúa tres riesgos reales', minMin: 12 },
         { id: 't2', tipo: 'taller', titulo: 'Taller: lee una fila completa de la matriz', minMin: 15 },
+        { id: 't3', tipo: 'taller', titulo: 'Taller: ¿qué falta o qué cambiarías en tu matriz?', minMin: 12 },
         { id: 'q1', tipo: 'quiz', titulo: 'Evaluación', banco: 'iper' }
       ] },
 
