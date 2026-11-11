@@ -845,7 +845,8 @@ CONTENIDO.talleres['iper.t3'] = function (cargo) {
 CONTENIDO.karin = {
   canalInterno: 'Por escrito o en forma verbal ante Iza Sandoval Salgado, Asesora en Prevención de Riesgos (APR), correo pyvdesinfecciones2015@gmail.com, teléfono +56 9 3093 4654. Si hay conflicto de interés o algo afecta su imparcialidad, la denuncia la recibe la Gerencia General, Pablo Rain Miranda. Si la denuncia es verbal, se levanta un acta que la persona denunciante firma y recibe en copia.',
   canalDT: 'Directamente ante la Inspección del Trabajo, de forma presencial o en www.dt.gob.cl.',
-  documento: ''
+  documento: 'docs/Procedimiento_Denuncia_Ley_Karin_PyV_V2.pdf',
+  protocolo: 'docs/Protocolo_Ley_Karin_PyV_V3.pdf'
 };
 CONTENIDO.lecciones['karin.l1'] = { diapositivas: [
   { t: 'Ley Karin (Ley N° 21.643)', x: 'Desde agosto de 2024 todas las empresas deben prevenir, investigar y sancionar el acoso laboral, el acoso sexual y la violencia en el trabajo. La ley lleva el nombre de Karin Salgado, técnica en enfermería que falleció tras sufrir acoso laboral en su trabajo.', l: ['La empresa debe tener un protocolo de prevención y un procedimiento de investigación.', 'Cada seis meses debe informar a todos los trabajadores los canales de denuncia: esta difusión es esa obligación.', 'El trabajo debe ser un espacio libre de violencia, con respeto a la dignidad de todas las personas.'] },
@@ -865,7 +866,7 @@ CONTENIDO.juegos['karin.j1'] = { intro: 'Lee cada situación y clasifícala seg�
     { t: 'La jefatura revisa con el trabajador un error en el registro y le explica cómo corregirlo', c: 'no', fb: 'Corrección fundada y respetuosa: no es acoso.' },
     { t: 'Un proveedor empuja y grita a la asistente en la oficina', c: 'terceros', fb: 'Agresión de una persona externa durante el trabajo.' }
   ] }] };
-CONTENIDO.lecciones['karin.l2'] = { diapositivas: [
+CONTENIDO.lecciones['karin.l2'] = { documento: 'docs/Protocolo_Ley_Karin_PyV_V3.pdf', diapositivas: [
   { t: 'El protocolo de prevención de PyV', x: 'PyV tiene un Protocolo de prevención del acoso sexual, laboral y la violencia en el trabajo, un Procedimiento de denuncia, investigación y sanción, y un Programa preventivo 2026–2027. Sus objetivos:', l: ['Identificar los factores de riesgo y gestionarlos (la Matriz IPER los incluye para todos los cargos).', 'Informar y capacitar a todas las personas trabajadoras.', 'Recibir, investigar y sancionar las denuncias con reserva y sin represalias.', 'Evaluar los riesgos psicosociales con el cuestionario CEAL-SM.'] },
   { t: 'Factores de riesgo en nuestro trabajo', l: ['Turnos 14 x 14 con convivencia a bordo en espacios reducidos.', 'Trabajo en zonas aisladas, lejos de la jefatura y de redes de apoyo.', 'Presión por plazos, clima y coordinación con la mandante y otros contratistas.', 'Grupos de trabajo pequeños donde un conflicto escala rápido.', 'Comunicación por WhatsApp y redes, también fuera del horario.'] },
   { t: 'Medidas de prevención', l: ['Trato respetuoso como regla para todos, sin importar el cargo.', 'Convivencia a bordo según el Reglamento Interno: descanso, turnos de cocina y orden acordados.', 'Jefaturas que corrigen en privado y con respeto.', 'Cero tolerancia a bromas o comentarios sexuales, racistas u ofensivos.', 'Si ves una situación de acoso, no la normalices: apoya a la persona e infórmala.'] },
