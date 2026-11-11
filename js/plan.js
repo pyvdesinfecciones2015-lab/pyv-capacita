@@ -147,6 +147,20 @@ var PLAN = {
         { id: 'l3', tipo: 'leccion', titulo: 'Cápsula 3: investigar para que no se repita (PTS-018)', minMin: 10 },
         { id: 't1', tipo: 'taller', titulo: 'Taller: investiga un accidente', minMin: 15 },
         { id: 'q1', tipo: 'quiz', titulo: 'Evaluación', banco: 'acc' }
+      ] },
+
+    { id: 'karin', titulo: 'Ley Karin: difusión semestral', sub: 'Protocolo de prevención del acoso laboral, sexual y la violencia en el trabajo · art. 211-A Código del Trabajo',
+      horas: 1, duracionMin: 60, doc: 'difusion', vigenciaMeses: 6, plazoMeses: 0, cargos: '*',
+      contenidos: 'Acoso laboral, acoso sexual y violencia en el trabajo ejercida por terceros · Protocolo de prevención de PyV · Factores de riesgo en faena, a bordo y en oficina · Canales de denuncia interno y ante la Inspección del Trabajo · Procedimiento, plazos y medidas de resguardo · Confidencialidad y atención psicológica temprana (ACHS)',
+      etapas: [
+        { id: 'l1', tipo: 'leccion', titulo: 'Cápsula 1: qué es acoso laboral, acoso sexual y violencia en el trabajo', minMin: 12 },
+        { id: 'j1', tipo: 'juego', titulo: '¿Qué tipo de conducta es?' },
+        { id: 'l2', tipo: 'leccion', titulo: 'Cápsula 2: el protocolo de prevención de PyV', minMin: 10 },
+        { id: 'l3', tipo: 'leccion', titulo: 'Cápsula 3: cómo y dónde denunciar, y qué pasa después', minMin: 12 },
+        { id: 'j2', tipo: 'juego', titulo: 'Ordena el procedimiento de denuncia' },
+        { id: 't1', tipo: 'taller', titulo: 'Taller: casos en PyV', minMin: 12 },
+        { id: 'q1', tipo: 'quiz', titulo: 'Evaluación', banco: 'karin' },
+        { id: 'f1', tipo: 'firma', titulo: 'Constancia de recepción de la difusión' }
       ] }
   ]
 };

@@ -180,7 +180,9 @@ var CORE = (function () {
     var esCert = cur.doc === 'certificado';
     var durTxt = PLAN.duracionTxt(duracionCurso(C, cur));
     var verif = (C.URL_SITIO ? C.URL_SITIO.replace(/\/$/, '') + '/verificar.html?c=' : 'Código: ') + cert.codigo;
-    var texto = cur.id === 'ds44'
+    var esDif = cur.doc === 'difusion', mesesV = cur.vigenciaMeses || 12;
+    var texto = esDif ? 'recibió la difusión semestral del Protocolo de prevención del acoso laboral, sexual y la violencia en el trabajo de la empresa y de sus canales de denuncia, conforme al artículo 211-A del Código del Trabajo (Ley N° 21.643), en modalidad e-learning asincrónica con evaluación de aprendizaje y constancia de recepción firmada.'
+      : cur.id === 'ds44'
       ? 'aprobó el curso de Prevención de Riesgos Laborales conforme al artículo 16 del D.S. N° 44/2024 del Ministerio del Trabajo y Previsión Social y a la Guía Técnica aprobada por Resolución Exenta N° 1117/2026 de la Subsecretaría de Previsión Social.'
       : 'completó y aprobó la capacitación <b>' + esc(cur.titulo) + '</b> impartida por la empresa en modalidad e-learning asincrónica, con evaluación de aprendizaje.';
     return '<html><head><meta charset="utf-8"><style>' +
@@ -198,14 +200,14 @@ var CORE = (function () {
       '</style></head><body><div class="hoja"><div class="banda"></div>' +
       (logo() ? '<img class="logo" src="' + logo() + '" alt="">' : '') +
       '<div class="emp">' + esc(C.EMPRESA) + '</div><div class="rut">RUT ' + esc(C.RUT_EMPRESA) + ' · Organismo administrador Ley 16.744: ' + esc(C.ORGANISMO) + '</div>' +
-      '<h1>' + (esCert ? 'Certificado de capacitación' : 'Constancia de capacitación') + '</h1><div class="sub">' + esc(cur.titulo) + (cur.sub ? ' · ' + esc(cur.sub) : '') + '</div>' +
+      '<h1>' + (esDif ? 'Constancia de difusión' : esCert ? 'Certificado de capacitación' : 'Constancia de capacitación') + '</h1><div class="sub">' + esc(cur.titulo) + (cur.sub ? ' · ' + esc(cur.sub) : '') + '</div>' +
       '<p>Se certifica que</p><div class="nombre">' + esc(t.nombre) + '</div><div class="runc">RUN ' + esc(formatoRun(t.run)) + ' · ' + esc(cargo) + '</div>' +
       '<p>' + texto + '</p>' +
       '<table><tr><td class="k">Duración del programa</td><td>' + esc(durTxt) + '</td></tr>' +
       '<tr><td class="k">Modalidad</td><td>E-learning asincrónico con cápsulas, actividades prácticas, talleres y evaluación</td></tr>' +
       '<tr><td class="k">Tiempo registrado en plataforma</td><td>' + horasTxt(seg) + '</td></tr>' +
       '<tr><td class="k">Fecha de aprobación</td><td>' + esc(fechaCl(cert.fechaEmision)) + '</td></tr>' +
-      '<tr><td class="k">Vigencia</td><td>' + (cert.vence ? '12 meses, hasta el ' + esc(fechaCl(cert.vence)) + ', o antes si cambian el procedimiento o el cargo, o tras un accidente' : 'Hasta que cambien el procedimiento o el cargo, o tras un accidente') + '</td></tr>' +
+      '<tr><td class="k">Vigencia</td><td>' + (cert.vence ? (esDif ? mesesV + ' meses, hasta el ' + esc(fechaCl(cert.vence)) + ' (difusión semestral obligatoria)' : mesesV + ' meses, hasta el ' + esc(fechaCl(cert.vence)) + ', o antes si cambian el procedimiento o el cargo, o tras un accidente') : 'Hasta que cambien el procedimiento o el cargo, o tras un accidente') + '</td></tr>' +
       '<tr><td class="k">Contenidos</td><td>' + esc(cur.contenidos || '') + '</td></tr>' +
       (cert.version ? '<tr><td class="k">Documento base</td><td>' + esc(cur.titulo) + ' · versión ' + esc(cert.version) + '</td></tr>' : '') +
       '<tr><td class="k">Código de verificación</td><td><b>' + esc(cert.codigo) + '</b></td></tr></table>' +
@@ -418,7 +420,7 @@ var CORE = (function () {
         vence: cur.vigenciaMeses ? env.fmt(sumarMeses(ahora, cur.vigenciaMeses), 'fecha') : '', horasProgramadas: cursoId === 'ds44' ? C.HORAS_CURSO : cur.horas,
         segundosRegistrados: R.segundos, archivoId: '', archivoUrl: '', estado: 'vigente', curso: cursoId, version: C['VERSION_' + cursoId] || '' };
       var html = certificadoHtml(C, t, c, qr(urlVerif(C, c.codigo)), R.segundos);
-      var f = env.drive.guardarPdf(t.carpetaId, (cur.doc === 'certificado' ? 'Certificado_' : 'Constancia_') + cursoId.toUpperCase() + '_' + c.codigo + '.pdf', html);
+      var f = env.drive.guardarPdf(t.carpetaId, (cur.doc === 'certificado' ? 'Certificado_' : cur.doc === 'difusion' ? 'Difusion_' : 'Constancia_') + cursoId.toUpperCase() + '_' + c.codigo + '.pdf', html);
       c.archivoId = f.id || ''; c.archivoUrl = f.url || '';
       env.db.append('Certificados', c);
       if (cursoId === 'ds44') { t.certCodigo = c.codigo; t.certFecha = c.fechaEmision; t.certVence = c.vence; t.estado = 'certificado'; env.db.update('Trabajadores', t); }

@@ -50,7 +50,7 @@
     T.forEach(function (t) { cuenta[estadoDe(t)]++; });
     cuenta.vencido += cuenta.cert_vencido;
     var tabs = [['trabajadores', 'Avance'], ['sesiones', 'Sesiones']];
-    if (A.rol === 'admin') tabs.push(['revision', 'Modo revisión'], ['capacitaciones', 'Crear capacitación'], ['talleres', 'Respuestas'], ['expediente', 'Fiscalización'], ['config', 'Configuración']);
+    if (A.rol === 'admin') tabs.push(['reporte', 'Reporte mensual'], ['revision', 'Modo revisión'], ['capacitaciones', 'Crear capacitación'], ['talleres', 'Respuestas'], ['expediente', 'Fiscalización'], ['config', 'Configuración']);
     var cursoSel = '<label class="campo" style="margin-bottom:12px">Capacitación<select id="fcur">' + PLAN.cursos.map(function (c) { return '<option value="' + c.id + '"' + (A.filtro.curso === c.id ? ' selected' : '') + '>' + h(c.titulo) + '</option>'; }).join('') + '</select></label>';
     app.innerHTML = cursoSel + '<div class="kpis">' +
       '<div class="kpi"><b>' + cuenta.total + '</b><span>Deben hacerla</span></div>' +
@@ -62,10 +62,91 @@
       '<div id="vista"></div>' + (D.raiz ? '<p class="pie"><a href="' + h(D.raiz) + '" target="_blank" rel="noopener">Abrir la carpeta de respaldo en Google Drive</a></p>' : '');
     $$('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { A.tab = b.dataset.tab; pintar(); }); });
     $('#fcur').addEventListener('change', function () { A.filtro.curso = this.value; A.filtro.estado = ''; pintar(); });
-    ({ trabajadores: vTrabajadores, sesiones: vSesiones, expediente: vExpediente, config: vConfig, capacitaciones: vCapacitaciones, talleres: vRespuestas, revision: vRevision })[A.tab]();
+    ({ trabajadores: vTrabajadores, sesiones: vSesiones, expediente: vExpediente, config: vConfig, capacitaciones: vCapacitaciones, talleres: vRespuestas, revision: vRevision, reporte: vReporte })[A.tab]();
   }
 
 
+
+  /* ---------- reporte mensual de cumplimiento por trabajador ---------- */
+  function estCurso(c) {
+    if (!c) return '';
+    if (c.certificado && !c.certificado.vencido) return c.certificado.porVencer ? 'por_vencer' : 'vigente';
+    if (c.certificado && c.certificado.vencido) return 'vencido';
+    if (c.plazoVencido) return 'vencido';
+    return c.iniciado ? 'en_curso' : 'pendiente';
+  }
+  var EST_TXT = { vigente: 'Vigente', por_vencer: 'Por vencer', vencido: 'Vencido', en_curso: 'En curso', pendiente: 'Pendiente' };
+  function fCl(f) { var m = String(f || '').match(/(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : (f || ''); }
+  function datosReporte(mes) {
+    var T = A.datos.trabajadores.slice().sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre)); });
+    return T.map(function (t) {
+      var cs = PLAN.cursosDe(t.cargo), n = { vigente: 0, por_vencer: 0, vencido: 0, en_curso: 0, pendiente: 0 }, mesN = 0, det = [];
+      cs.forEach(function (cur) {
+        var c = t.cursos && t.cursos[cur.id], e = estCurso(c) || 'pendiente'; n[e]++;
+        if (c && c.certificado && String(c.certificado.fecha || '').slice(0, 7) === mes) mesN++;
+        det.push({ id: cur.id, titulo: cur.titulo, estado: e, vence: c && c.certificado ? c.certificado.vence : '', fecha: c && c.certificado ? c.certificado.fecha : '', avance: c ? Math.round((c.avance || 0) * 100) : 0 });
+      });
+      var k = t.cursos && t.cursos.karin, ke = estCurso(k);
+      var req = cs.length, ok = n.vigente + n.por_vencer;
+      return { t: t, cargo: (PLAN.cargo(t.cargo) || {}).nombre || t.cargo, req: req, ok: ok, n: n, pct: req ? Math.round(ok / req * 100) : 0, mesN: mesN, karin: ke, karinVence: k && k.certificado ? k.certificado.vence : '', det: det };
+    });
+  }
+  function vReporte() {
+    var hoy = new Date(), mes = A.repMes || (hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2));
+    var R = datosReporte(mes), tot = R.length;
+    var glob = R.reduce(function (s, r) { return s + r.req; }, 0), okG = R.reduce(function (s, r) { return s + r.ok; }, 0);
+    var kOk = R.filter(function (r) { return r.karin === 'vigente' || r.karin === 'por_vencer'; }).length;
+    var emit = R.reduce(function (s, r) { return s + r.mesN; }, 0), venc = R.reduce(function (s, r) { return s + r.n.vencido; }, 0), pv = R.reduce(function (s, r) { return s + r.n.por_vencer; }, 0);
+    var al = function (p) { return p >= 100 ? 'ok-chip' : p >= 70 ? 'alerta' : 'peligro'; };
+    $('#vista').innerHTML = '<section class="tarjeta"><h2>Reporte mensual de cumplimiento</h2>' +
+      '<p class="suave">Estado de las capacitaciones exigidas a cada trabajador según su cargo, al día de hoy, y certificados emitidos en el mes elegido. Incluye la difusión semestral de la Ley Karin.</p>' +
+      '<div class="fila-btn"><label class="campo" style="max-width:220px">Mes del reporte<input type="month" id="rep-mes" value="' + mes + '"></label></div>' +
+      '<div class="kpis">' +
+      '<div class="kpi"><b>' + (glob ? Math.round(okG / glob * 100) : 0) + '%</b><span>Cumplimiento general</span></div>' +
+      '<div class="kpi"><b>' + kOk + ' de ' + tot + '</b><span>Ley Karin semestral al día</span></div>' +
+      '<div class="kpi"><b>' + emit + '</b><span>Certificados emitidos en el mes</span></div>' +
+      '<div class="kpi"><b>' + pv + '</b><span>Por vencer (60 días)</span></div>' +
+      '<div class="kpi"><b>' + venc + '</b><span>Vencidos</span></div></div>' +
+      '<div class="fila-btn"><button class="btn btn-pri" type="button" id="rep-pdf">Imprimir o guardar PDF</button><button class="btn btn-sec" type="button" id="rep-csv">Descargar Excel (CSV)</button></div>' +
+      (tot ? '<div class="tabla-scroll"><table class="tabla"><thead><tr><th>Trabajador</th><th>Cargo</th><th>Exigidas</th><th>Vigentes</th><th>En curso</th><th>Pendientes</th><th>Vencidas</th><th>Cumplimiento</th><th>Ley Karin</th><th>Emitidos en el mes</th></tr></thead><tbody>' +
+        R.map(function (r) { return '<tr><td><b>' + h(r.t.nombre) + '</b><br><span class="peq suave">' + h(r.t.run) + '</span></td><td>' + h(r.cargo) + '</td><td>' + r.req + '</td><td>' + r.ok + '</td><td>' + r.n.en_curso + '</td><td>' + r.n.pendiente + '</td><td>' + r.n.vencido + '</td><td><span class="chip ' + al(r.pct) + '">' + r.pct + '%</span></td><td>' + (r.karin === 'vigente' || r.karin === 'por_vencer' ? 'Al día hasta ' + fCl(r.karinVence) : '<span class="chip peligro">' + (r.karin === 'vencido' ? 'Vencida' : 'Pendiente') + '</span>') + '</td><td>' + r.mesN + '</td></tr>'; }).join('') +
+        '</tbody></table></div>' : '<p class="suave">Aún no hay trabajadores registrados.</p>') + '</section>';
+    $('#rep-mes').addEventListener('change', function () { A.repMes = this.value; vReporte(); });
+    $('#rep-csv').addEventListener('click', function () { csvReporte(R, mes); });
+    $('#rep-pdf').addEventListener('click', function () { pdfReporte(R, mes); });
+  }
+  function nombreMes(mes) { var M = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'], p = mes.split('-'); return M[+p[1] - 1] + ' de ' + p[0]; }
+  function csvReporte(R, mes) {
+    var cursos = PLAN.cursos.slice(), q = function (v) { v = String(v == null ? '' : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var L = [['Reporte de cumplimiento de capacitaciones', (A.datos.config || {}).EMPRESA || '', 'Mes: ' + nombreMes(mes), 'Generado: ' + fCl(new Date().toISOString().slice(0, 10))],
+      ['Trabajador', 'RUN', 'Cargo', 'Exigidas', 'Vigentes', 'En curso', 'Pendientes', 'Vencidas', 'Cumplimiento %', 'Ley Karin', 'Ley Karin vigente hasta', 'Emitidos en el mes'].concat(cursos.map(function (c) { return c.titulo; }))];
+    R.forEach(function (r) {
+      var porId = {}; r.det.forEach(function (d) { porId[d.id] = d; });
+      L.push([r.t.nombre, r.t.run, r.cargo, r.req, r.ok, r.n.en_curso, r.n.pendiente, r.n.vencido, r.pct, EST_TXT[r.karin] || 'Pendiente', fCl(r.karinVence), r.mesN].concat(cursos.map(function (c) { var d = porId[c.id]; return d ? EST_TXT[d.estado] + (d.vence ? ' (vence ' + fCl(d.vence) + ')' : '') : 'No aplica'; })));
+    });
+    var blob = new Blob(['﻿' + L.map(function (f) { return f.map(q).join(';'); }).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Reporte_cumplimiento_PyV_' + mes + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+  }
+  function pdfReporte(R, mes) {
+    var C = A.datos.config || {}, glob = R.reduce(function (s, r) { return s + r.req; }, 0), okG = R.reduce(function (s, r) { return s + r.ok; }, 0);
+    var kOk = R.filter(function (r) { return r.karin === 'vigente' || r.karin === 'por_vencer'; }).length;
+    var col = { vigente: '#1d5e33', por_vencer: '#7a4b00', vencido: '#9b1c1c', en_curso: '#0f3b4c', pendiente: '#555' };
+    var html = '<!doctype html><html><head><meta charset="utf-8"><title>Reporte de cumplimiento ' + h(nombreMes(mes)) + '</title><style>' +
+      '@page{size:A4 landscape;margin:12mm}body{font-family:Arial,Helvetica,sans-serif;color:#1b2a31;font-size:9.5pt}h1{font-size:16pt;color:#0f3b4c;margin:0}h2{font-size:11pt;color:#0f3b4c;margin:18px 0 6px}.cab{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #f26b1d;padding-bottom:8px;margin-bottom:10px}.cab img{height:56px}' +
+      'table{border-collapse:collapse;width:100%;margin-top:6px}th,td{border:1px solid #cfd8dc;padding:4px 6px;text-align:left;vertical-align:top}th{background:#0f3b4c;color:#fff;font-weight:normal}.k{display:inline-block;margin-right:18px}.k b{font-size:13pt;color:#0f3b4c}.trab{page-break-inside:avoid}.firma{margin-top:40px;width:260px;border-top:1px solid #1b2a31;padding-top:4px}' +
+      '</style></head><body><div class="cab"><div><h1>Reporte mensual de cumplimiento de capacitaciones</h1><div>' + h(C.EMPRESA || '') + (C.RUT_EMPRESA ? ' · RUT ' + h(C.RUT_EMPRESA) : '') + '</div><div>Mes: <b>' + h(nombreMes(mes)) + '</b> · Estado al ' + fCl(new Date().toISOString().slice(0, 10)) + '</div></div>' + (window.LOGO_PYV ? '<img src="' + LOGO_PYV + '">' : '') + '</div>' +
+      '<div><span class="k"><b>' + R.length + '</b> trabajadores</span><span class="k"><b>' + (glob ? Math.round(okG / glob * 100) : 0) + '%</b> cumplimiento general</span><span class="k"><b>' + kOk + ' de ' + R.length + '</b> con Ley Karin semestral al día</span><span class="k"><b>' + R.reduce(function (s, r) { return s + r.mesN; }, 0) + '</b> certificados emitidos en el mes</span></div>' +
+      '<h2>Resumen por trabajador</h2><table><tr><th>Trabajador</th><th>RUN</th><th>Cargo</th><th>Exigidas</th><th>Vigentes</th><th>En curso</th><th>Pendientes</th><th>Vencidas</th><th>Cumplimiento</th><th>Ley Karin</th><th>Emitidos en el mes</th></tr>' +
+      R.map(function (r) { return '<tr><td>' + h(r.t.nombre) + '</td><td>' + h(r.t.run) + '</td><td>' + h(r.cargo) + '</td><td>' + r.req + '</td><td>' + r.ok + '</td><td>' + r.n.en_curso + '</td><td>' + r.n.pendiente + '</td><td>' + r.n.vencido + '</td><td><b>' + r.pct + '%</b></td><td>' + (r.karin === 'vigente' || r.karin === 'por_vencer' ? 'Al día hasta ' + fCl(r.karinVence) : (r.karin === 'vencido' ? 'Vencida' : 'Pendiente')) + '</td><td>' + r.mesN + '</td></tr>'; }).join('') + '</table>' +
+      '<h2>Detalle por trabajador</h2>' + R.map(function (r) {
+        return '<div class="trab"><p style="margin:12px 0 2px"><b>' + h(r.t.nombre) + '</b> · ' + h(r.t.run) + ' · ' + h(r.cargo) + ' · cumplimiento ' + r.pct + '%</p><table><tr><th>Capacitación</th><th>Estado</th><th>Avance</th><th>Fecha de aprobación</th><th>Vence</th></tr>' +
+          r.det.map(function (d) { return '<tr><td>' + h(d.titulo) + '</td><td style="color:' + col[d.estado] + '"><b>' + EST_TXT[d.estado] + '</b></td><td>' + d.avance + '%</td><td>' + fCl(d.fecha) + '</td><td>' + fCl(d.vence) + '</td></tr>'; }).join('') + '</table></div>';
+      }).join('') +
+      '<div class="firma"><b>' + h(C.FACILITADOR_NOMBRE || '') + '</b><br>' + h(C.FACILITADOR_TITULO || 'Prevención de Riesgos') + '</div>' +
+      '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>';
+    var w = window.open('', '_blank'); if (!w) { toast('Permite las ventanas emergentes para imprimir el reporte.'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+  }
   /* ---------- modo revisión: ver la plataforma como cada cargo ---------- */
   function vRevision() {
     var C = PLAN.cargos;
