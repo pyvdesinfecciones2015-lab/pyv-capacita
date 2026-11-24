@@ -69,7 +69,7 @@ textarea{min-height:72px;resize:vertical}
   <label class="photo">📷 Agregar fotos de lo observado<input type="file" accept="image/*" multiple data-ph="p"></label>
   <div class="thumbs" id="th_p"></div>
   <button class="btn pri full" id="p_save">💾 Guardar caminata</button>
-  <p class="hint">Al guardar, la caminata queda en el informe de la semana. Luego puedes enviarla por WhatsApp.</p>
+  <p class="hint">Al guardar, la caminata queda en el informe de la semana. <b>Después envíala a Iza</b> con «Enviar por WhatsApp»: van el texto y las fotos juntos.</p>
  </div>
  <div class="card"><h2>Caminatas guardadas <span class="badge" id="n_p">0</span></h2><div class="list" id="l_p"><p class="hint">Aún no hay caminatas.</p></div></div>
 </section>
@@ -182,7 +182,7 @@ FIELDS.forEach(el=>el.addEventListener('input',()=>{S.draft[el.id]=el.type==='ch
 const clear=ids=>ids.forEach(id=>{delete S.draft[id];const el=$(id);el.value=el.type==='date'?today:(el.defaultValue||'')});
 
 /* ---------- textos para WhatsApp ---------- */
-const pautaTxt=p=>{let o='🛡️ *PAUTA GUARDIÁN DEL DÍA – Etapa 3*\n📅 '+fd(p.fecha)+'  🕐 '+p.hora+'\n👤 Guardián: '+p.guardian+'\n🚤 '+p.emb+' · 🏭 Centro: '+p.centro+'\n🔧 Tarea: '+p.tarea+'\n';let i=0;GROUPS.forEach(([g,its])=>{o+='\n*'+g.toUpperCase()+'*\n';its.forEach(t=>o+='▫️ '+t+': '+LBL[p.marks[i++]||0]+'\n')});return o+'\n⭐ *Conducta destacada:* '+p.dest+'\n⚠️ *Inseguro corregido:* '+(p.corr||'No hubo')+'\n📸 '+p.fotos.length+' foto(s) en el informe semanal'};
+const pautaTxt=p=>{let o='🛡️ *PAUTA GUARDIÁN DEL DÍA – Etapa 3*\n📅 '+fd(p.fecha)+'  🕐 '+p.hora+'\n👤 Guardián: '+p.guardian+'\n🚤 '+p.emb+' · 🏭 Centro: '+p.centro+'\n🔧 Tarea: '+p.tarea+'\n';let i=0;GROUPS.forEach(([g,its])=>{o+='\n*'+g.toUpperCase()+'*\n';its.forEach(t=>o+='▫️ '+t+': '+LBL[p.marks[i++]||0]+'\n')});return o+'\n⭐ *Conducta destacada:* '+p.dest+'\n⚠️ *Inseguro corregido:* '+(p.corr||'No hubo')+'\n📸 '+p.fotos.length+' foto(s) adjunta(s)'};
 const tarjTxt=t=>'💙 *TE VI CUIDANDO LA VIDA*\nPara: '+t.para+'\nDe: '+t.de+'\n👀 Te vi… '+t.vi+'\n🛡️ Eso nos protege de… '+t.prot;
 const asist=()=>{const a=CREW.filter((c,i)=>$('a'+i).checked);if(v('r_otros'))a.push(...v('r_otros').split(/[,;\n]/).map(s=>s.trim()).filter(Boolean));return a};
 const reuTxt=()=>{const a=asist();return '🏅 *REUNIÓN DE RECONOCIMIENTO – Etapa 3*\n📅 '+fd(v('r_fecha'))+'  🕐 '+v('r_hora')+'\n🏭 Centro: '+v('r_centro')+'\n👤 Dirigió: '+v('r_dirigio')+'\n\n⭐ *Guardián de la semana:* '+v('r_guard')+'\n✅ *Conducta reconocida:* '+v('r_cond')+'\n💬 *Reflexión:* '+v('r_refl')+'\n🤝 *Compromiso:* '+v('r_comp')+'\n👷 *AquaChile:* '+(v('r_aqua')||'No participó')+'\n\n*Asistentes ('+a.length+'):*\n'+a.map((x,i)=>(i+1)+'. '+x).join('\n')};
@@ -194,7 +194,7 @@ const text=()=>cur==='pauta'?(S.pautas.length&&!v('p_guardian')?pautaTxt(S.pauta
 /* ---------- listas ---------- */
 const lists=()=>{
  $('n_p').textContent=S.pautas.length;$('n_t').textContent=S.tarjetas.length;
- $('l_p').innerHTML=S.pautas.length?S.pautas.map((p,i)=>'<div class="li"><span><b>'+fd(p.fecha)+'</b> · '+esc(p.guardian||'Sin nombre')+'<br><small>'+esc(p.tarea)+' · '+p.fotos.length+' foto(s)</small></span><button class="btn dan" style="min-height:38px" data-del="pautas" data-i="'+i+'">Borrar</button></div>').join(''):'<p class="hint">Aún no hay caminatas.</p>';
+ $('l_p').innerHTML=S.pautas.length?S.pautas.map((p,i)=>'<div class="li"><span><b>'+fd(p.fecha)+'</b> · '+esc(p.guardian||'Sin nombre')+'<br><small>'+esc(p.tarea)+' · '+p.fotos.length+' foto(s)</small></span><span style="display:flex;gap:6px"><button class="btn wa" style="min-height:38px;padding:0 12px" data-send="'+i+'">Enviar</button><button class="btn dan" style="min-height:38px;padding:0 12px" data-del="pautas" data-i="'+i+'">Borrar</button></span></div>').join(''):'<p class="hint">Aún no hay caminatas.</p>';
  $('l_t').innerHTML=S.tarjetas.length?S.tarjetas.map((t,i)=>'<div class="li"><span><b>Para '+esc(t.para)+'</b><br><small>De '+esc(t.de)+': '+esc(t.vi)+'</small></span><button class="btn dan" style="min-height:38px" data-del="tarjetas" data-i="'+i+'">Borrar</button></div>').join(''):'<p class="hint">Aún no hay tarjetas.</p>';
  const nf=S.pautas.reduce((a,p)=>a+p.fotos.length,0)+S.rfotos.length;
  $('s_c').textContent=S.pautas.length;$('s_t').textContent=S.tarjetas.length;$('s_f').textContent=nf;
@@ -202,12 +202,16 @@ const lists=()=>{
  $('s_msg').textContent=falta.length?'Falta: '+falta.join(', ')+'. Igual puedes generar el informe.':'¡Semana completa! Genera y envía el informe.';
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;if(b.dataset.ok!=='1'){b.dataset.ok='1';b.textContent='¿Seguro?';setTimeout(()=>{b.dataset.ok='';b.textContent='Borrar'},3000);return}S[b.dataset.del].splice(+b.dataset.i,1);save();lists()});
-$('p_save').onclick=()=>{const p=curPauta();if(!p.guardian){toast('Escribe el nombre del Guardián del día');return}if(!Object.values(p.marks).some(x=>x)){toast('Marca al menos una conducta');return}S.pautas.push(p);S.marks={};S.pfotos=[];clear(['p_guardian','p_tarea','p_dest','p_corr','p_hora']);paint();thumbs();save();lists();toast('Caminata guardada ✔ Ahora puedes enviarla por WhatsApp')};
+$('p_save').onclick=()=>{const p=curPauta();if(!p.guardian){toast('Escribe el nombre del Guardián del día');return}if(!Object.values(p.marks).some(x=>x)){toast('Marca al menos una conducta');return}S.pautas.push(p);S.marks={};S.pfotos=[];clear(['p_guardian','p_tarea','p_dest','p_corr','p_hora']);paint();thumbs();save();lists();toast('Caminata guardada ✔ Toca «Enviar por WhatsApp» y elige a Iza')};
 $('t_save').onclick=()=>{const t=curTarj();if(!t.para||!t.vi){toast('Completa «Para» y «Te vi…»');return}S.tarjetas.push(t);clear(['t_para','t_de','t_vi','t_prot']);save();lists();toast('Tarjeta guardada ✔')};
 
 /* ---------- pestañas ---------- */
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{cur=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id===cur));$('wa').style.display=$('copy').style.display=cur==='diploma'?'none':'';if(cur==='informe')lists();window.scrollTo(0,0)});
-$('wa').addEventListener('click',()=>{$('wa').href='https://wa.me/?text='+encodeURIComponent(text())});
+const curFotos=()=>cur==='pauta'?(S.pautas.length&&!v('p_guardian')?S.pautas[S.pautas.length-1].fotos:S.pfotos):cur==='reunion'?S.rfotos:[];
+const toFile=(d,i)=>{const b=atob(d.split(',')[1]),u=new Uint8Array(b.length);for(let j=0;j<b.length;j++)u[j]=b.charCodeAt(j);return new File([u],'foto_'+(i+1)+'.jpg',{type:'image/jpeg'})};
+async function enviar(t,fotos){if(fotos.length&&navigator.canShare){try{const files=fotos.map(toFile);if(navigator.canShare({files})){await navigator.share({files,text:t});return true}}catch(e){if(e.name==='AbortError')return true}}return false}
+$('wa').addEventListener('click',async e=>{const t=text(),f=curFotos();$('wa').href='https://wa.me/?text='+encodeURIComponent(t);if(f.length&&navigator.canShare){e.preventDefault();if(!(await enviar(t,f))){toast('Tu celular no permite adjuntar fotos aquí: se abrirá solo el texto. Manda las fotos aparte.');setTimeout(()=>location.href=$('wa').href,1500)}}});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-send]');if(!b)return;const p=S.pautas[+b.dataset.send];const t=pautaTxt(p);if(!(await enviar(t,p.fotos)))location.href='https://wa.me/?text='+encodeURIComponent(t)});
 $('copy').onclick=()=>{const t=text();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Texto copiado. Pégalo en WhatsApp.')).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Texto copiado.')}catch(e){toast('No se pudo copiar')}a.remove()})};
 
 /* ---------- diploma ---------- */
