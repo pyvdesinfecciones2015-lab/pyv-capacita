@@ -53,6 +53,7 @@ textarea{min-height:72px;resize:vertical}
 <header><div class="top"><img class="logo" alt="PyV"><div><h1>Todos somos guardianes de la vida</h1><p>Campaña AquaChile · Etapa 3 · Servicios Acuícolas PyV</p></div></div>
 <nav><button data-t="pauta" class="on">Pauta</button><button data-t="tarjeta">Tarjetas</button><button data-t="reunion">Reunión</button><button data-t="diploma">Diploma</button><button data-t="informe">Informe</button></nav></header>
 <main>
+<div id="nostore" style="display:none;background:#fbe9e7;color:#c0392b;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:600;margin-bottom:12px">⚠️ Este navegador no está guardando los datos. Abre el link en Google Chrome (menú ⋮ → «Abrir en Chrome») antes de llenar la pauta.</div>
 <div class="lema">Si observas que una barrera falta, <b>actúa</b>. Tu intervención puede salvar una vida.</div>
 
 <section class="tab on" id="pauta">
@@ -69,6 +70,7 @@ textarea{min-height:72px;resize:vertical}
   <label class="photo">📷 Agregar fotos de lo observado<input type="file" accept="image/*" multiple data-ph="p"></label>
   <div class="thumbs" id="th_p"></div>
   <button class="btn pri full" id="p_save">💾 Guardar caminata</button>
+  <p id="p_msg" style="display:none;margin:8px 0 0;padding:10px;border-radius:10px;font-weight:600;font-size:14.5px"></p>
   <p class="hint">Al guardar, la caminata queda en el informe de la semana. <b>Después envíala a Iza</b> con «Enviar por WhatsApp»: van el texto y las fotos juntos.</p>
  </div>
  <div class="card"><h2>Caminatas guardadas <span class="badge" id="n_p">0</span></h2><div class="list" id="l_p"><p class="hint">Aún no hay caminatas.</p></div></div>
@@ -159,7 +161,7 @@ const today=(()=>{const t=new Date();return new Date(t-t.getTimezoneOffset()*6e4
 let S={pautas:[],tarjetas:[],reunion:{},rfotos:[],draft:{},marks:{},pfotos:[],diploma:''};
 let db=null;
 const idb=()=>new Promise(r=>{try{const q=indexedDB.open('pyv_e3',1);q.onupgradeneeded=()=>q.result.createObjectStore('s');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
-const save=()=>{if(!db)return;try{db.transaction('s','readwrite').objectStore('s').put(S,'state')}catch(e){}};
+const save=()=>{if(!db)return;try{const tx=db.transaction('s','readwrite');tx.objectStore('s').put(S,'state');tx.onerror=()=>{$('nostore').style.display='block'}}catch(e){$('nostore').style.display='block'}};
 const load=()=>new Promise(r=>{if(!db)return r();try{const q=db.transaction('s').objectStore('s').get('state');q.onsuccess=()=>{if(q.result)S=Object.assign(S,q.result);r()};q.onerror=()=>r()}catch(e){r()}});
 
 /* ---------- pauta ---------- */
@@ -202,7 +204,8 @@ const lists=()=>{
  $('s_msg').textContent=falta.length?'Falta: '+falta.join(', ')+'. Igual puedes generar el informe.':'¡Semana completa! Genera y envía el informe.';
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;if(b.dataset.ok!=='1'){b.dataset.ok='1';b.textContent='¿Seguro?';setTimeout(()=>{b.dataset.ok='';b.textContent='Borrar'},3000);return}S[b.dataset.del].splice(+b.dataset.i,1);save();lists()});
-$('p_save').onclick=()=>{const p=curPauta();if(!p.guardian){toast('Escribe el nombre del Guardián del día');return}if(!Object.values(p.marks).some(x=>x)){toast('Marca al menos una conducta');return}S.pautas.push(p);S.marks={};S.pfotos=[];clear(['p_guardian','p_tarea','p_dest','p_corr','p_hora']);paint();thumbs();save();lists();toast('Caminata guardada ✔ Toca «Enviar por WhatsApp» y elige a Iza')};
+const pmsg=(t,ok)=>{const m=$('p_msg');m.textContent=t;m.style.display='block';m.style.background=ok?'#e3f4ea':'#fbe9e7';m.style.color=ok?'#1f8a4c':'#c0392b';clearTimeout(m._t);m._t=setTimeout(()=>m.style.display='none',8000)};
+$('p_save').onclick=()=>{const p=curPauta();if(!p.guardian){pmsg('⚠️ No se guardó: falta el nombre del Guardián del día (arriba).');$('p_guardian').focus();$('p_guardian').scrollIntoView({block:'center'});return}if(!Object.values(p.marks).some(x=>x)){pmsg('⚠️ No se guardó: marca Sí, No o N/A en las conductas.');document.querySelector('.seg').scrollIntoView({block:'center'});return}S.pautas.push(p);S.marks={};S.pfotos=[];clear(['p_guardian','p_tarea','p_dest','p_corr','p_hora']);paint();thumbs();save();lists();toast('Caminata guardada ✔');pmsg('✔ Caminata guardada ('+S.pautas.length+' en total). Ahora toca «Enviar por WhatsApp» y elige a Iza.',true)};
 $('t_save').onclick=()=>{const t=curTarj();if(!t.para||!t.vi){toast('Completa «Para» y «Te vi…»');return}S.tarjetas.push(t);clear(['t_para','t_de','t_vi','t_prot']);save();lists();toast('Tarjeta guardada ✔')};
 
 /* ---------- pestañas ---------- */
@@ -267,6 +270,6 @@ $('i_share').onclick=async()=>{try{const f=new File([blob()],fname(),{type:'text
 $('i_reset').onclick=()=>{const b=$('i_reset');if(b.dataset.ok!=='1'){b.dataset.ok='1';b.textContent='Toca de nuevo para confirmar';setTimeout(()=>{b.dataset.ok='';b.textContent='Borrar datos de la semana'},3500);return}S={pautas:[],tarjetas:[],reunion:{},rfotos:[],draft:{},marks:{},pfotos:[],diploma:''};save();FIELDS.forEach(el=>{el.type==='checkbox'?el.checked=true:el.value=el.type==='date'?today:(el.defaultValue||'')});paint();thumbs();lists();$('dip').style.display='none';b.dataset.ok='';b.textContent='Borrar datos de la semana';toast('Datos borrados')};
 
 /* ---------- inicio ---------- */
-(async()=>{db=await idb();await load();fill();paint();thumbs();lists();if(S.diploma){$('dip').src=S.diploma;$('dip').style.display='block'}})();
+(async()=>{db=await idb();if(!db)$('nostore').style.display='block';try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}await load();fill();paint();thumbs();lists();if(S.diploma){$('dip').src=S.diploma;$('dip').style.display='block'}})();
 }
 </script></body></html>
